@@ -1,0 +1,4 @@
+interface:
+  display_name: "WeChat MD Studio"
+  short_description: "Format Markdown articles for WeChat with smart themes."
+  default_prompt: "Use $wechat-md-studio to format this Markdown article for WeChat preview and copy-paste publishing."

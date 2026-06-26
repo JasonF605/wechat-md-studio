@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readArticle } from "../src/markdown.js";
 import { recommendTheme } from "../src/recommend.js";
 import { renderArticleHtml, renderPreviewPage } from "../src/renderer.js";
+import { buildDraftPayload } from "../src/wechat.js";
 
 const cases = [
   ["examples/ai-money.md", "tech-pulse"],
@@ -38,5 +39,18 @@ const preview = renderPreviewPage(article, {
 
 assert.match(preview, /Copy WeChat HTML/);
 assert.match(preview, /<textarea/);
+
+const { payload, warnings } = await buildDraftPayload(article, {
+  theme: recommendation.theme,
+  recommendation,
+  thumbMediaId: "TEST_THUMB_MEDIA_ID",
+  dryRun: true
+});
+
+assert.equal(payload.articles.length, 1);
+assert.equal(payload.articles[0].thumb_media_id, "TEST_THUMB_MEDIA_ID");
+assert.equal(payload.articles[0].article_type, "news");
+assert.match(payload.articles[0].content, /data-wmd-theme="tech-pulse"/);
+assert.deepEqual(warnings, []);
 
 console.log("All smoke tests passed.");

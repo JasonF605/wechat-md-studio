@@ -10,6 +10,7 @@ export function renderArticleHtml(article, options = {}) {
   const theme = typeof options.theme === "string" ? getTheme(options.theme) : options.theme || getTheme();
   const tokens = theme.tokens;
   const recommendation = options.recommendation;
+  const compact = options.compact === true;
   const html = [];
 
   html.push(
@@ -17,13 +18,13 @@ export function renderArticleHtml(article, options = {}) {
       boxSizing: "border-box",
       maxWidth: "100%",
       margin: "0 auto",
-      padding: "8px 0 24px",
+      padding: compact ? "0 0 18px" : "8px 0 24px",
       color: tokens.text,
-      background: tokens.background,
-      fontFamily: FONT_STACK,
+      background: compact ? undefined : tokens.background,
+      fontFamily: compact ? undefined : FONT_STACK,
       fontSize: "16px",
-      lineHeight: "1.78",
-      letterSpacing: "0"
+      lineHeight: compact ? "1.8" : "1.78",
+      letterSpacing: compact ? undefined : "0"
     })}">`
   );
 
@@ -32,7 +33,7 @@ export function renderArticleHtml(article, options = {}) {
   }
 
   for (const block of article.blocks) {
-    html.push(renderBlock(block, theme));
+    html.push(renderBlock(block, theme, options));
   }
 
   html.push("</section>");
@@ -189,22 +190,22 @@ export function renderPreviewPage(article, options = {}) {
 </html>`;
 }
 
-function renderBlock(block, theme) {
+function renderBlock(block, theme, options = {}) {
   switch (block.type) {
     case "heading":
-      return renderHeading(block, theme);
+      return renderHeading(block, theme, options);
     case "paragraph":
-      return tag("p", paragraphStyle(theme), renderInline(block.text));
+      return tag("p", paragraphStyle(theme, options), renderInline(block.text));
     case "quote":
-      return renderQuote(block, theme);
+      return renderQuote(block, theme, options);
     case "list":
-      return renderList(block, theme);
+      return renderList(block, theme, options);
     case "code":
-      return renderCode(block, theme);
+      return renderCode(block, theme, options);
     case "table":
-      return renderTable(block, theme);
+      return renderTable(block, theme, options);
     case "image":
-      return renderImage(block, theme);
+      return renderImage(block, theme, options);
     case "hr":
       return `<section style="${style({
         margin: "28px 0",
@@ -218,66 +219,67 @@ function renderBlock(block, theme) {
   }
 }
 
-function renderHeading(block, theme) {
+function renderHeading(block, theme, options = {}) {
   const tokens = theme.tokens;
   const text = renderInline(block.text);
+  const compact = options.compact === true;
 
   if (block.level === 1) {
     return `<section style="${style({
-      margin: "12px 0 24px",
-      padding: "18px 18px 16px",
+      margin: compact ? "8px 0 22px" : "12px 0 24px",
+      padding: compact ? "14px" : "18px 18px 16px",
       borderRadius: "8px",
-      background: `linear-gradient(135deg, ${tokens.soft}, ${tokens.soft2})`,
+      background: compact ? tokens.soft : `linear-gradient(135deg, ${tokens.soft}, ${tokens.soft2})`,
       border: `1px solid ${tokens.border}`
     })}">
   <h1 style="${style({
     margin: "0",
-    color: tokens.text,
-    fontSize: "24px",
+    color: compact ? undefined : tokens.text,
+    fontSize: compact ? "23px" : "24px",
     lineHeight: "1.35",
     fontWeight: "800",
-    letterSpacing: "0"
+    letterSpacing: compact ? undefined : "0"
   })}">${text}</h1>
 </section>`;
   }
 
   if (block.level === 2) {
     return `<h2 style="${style({
-      margin: "30px 0 14px",
-      padding: `0 0 0 12px`,
+      margin: compact ? "26px 0 12px" : "30px 0 14px",
+      padding: compact ? "0 0 0 10px" : `0 0 0 12px`,
       borderLeft: `4px solid ${tokens.accent}`,
-      color: tokens.text,
-      fontSize: "20px",
+      color: compact ? undefined : tokens.text,
+      fontSize: compact ? "19px" : "20px",
       lineHeight: "1.42",
-      fontWeight: "800",
-      letterSpacing: "0"
+      fontWeight: compact ? "700" : "800",
+      letterSpacing: compact ? undefined : "0"
     })}">${text}</h2>`;
   }
 
   if (block.level === 3) {
     return `<h3 style="${style({
-      margin: "24px 0 10px",
+      margin: compact ? "22px 0 10px" : "24px 0 10px",
       color: tokens.accent,
       fontSize: "17px",
       lineHeight: "1.48",
       fontWeight: "800",
-      letterSpacing: "0"
+      letterSpacing: compact ? undefined : "0"
     })}">${text}</h3>`;
   }
 
   return `<h${Math.min(block.level, 6)} style="${style({
     margin: "18px 0 8px",
-    color: tokens.text,
+    color: compact ? undefined : tokens.text,
     fontSize: "16px",
     lineHeight: "1.5",
     fontWeight: "700",
-    letterSpacing: "0"
+    letterSpacing: compact ? undefined : "0"
   })}">${text}</h${Math.min(block.level, 6)}>`;
 }
 
-function renderQuote(block, theme) {
+function renderQuote(block, theme, options = {}) {
   const body = block.children
-    .map((child) => tag("p", { ...paragraphStyle(theme), margin: "0 0 10px" }, renderInline(child.text)))
+    .map((child) => tag("p", { ...paragraphStyle(theme, options), margin: "0 0 10px" }, renderInline(child.text)))
     .join("\n");
 
   return `<blockquote style="${style({
@@ -290,17 +292,18 @@ function renderQuote(block, theme) {
   })}">${body}</blockquote>`;
 }
 
-function renderList(block, theme) {
+function renderList(block, theme, options = {}) {
   const tagName = block.ordered ? "ol" : "ul";
+  const compact = options.compact === true;
   const items = block.items
     .map((item) =>
       tag(
         "li",
         {
           margin: "0 0 8px",
-          paddingLeft: "2px",
+          paddingLeft: compact ? undefined : "2px",
           lineHeight: "1.75",
-          color: theme.tokens.text
+          color: compact ? undefined : theme.tokens.text
         },
         renderInline(item)
       )
@@ -313,10 +316,11 @@ function renderList(block, theme) {
   })}">${items}</${tagName}>`;
 }
 
-function renderCode(block, theme) {
+function renderCode(block, theme, options = {}) {
+  const compact = options.compact === true;
   return `<pre style="${style({
     margin: "16px 0",
-    padding: "14px",
+    padding: compact ? "12px" : "14px",
     overflowX: "auto",
     borderRadius: "8px",
     background: theme.tokens.codeBg,
@@ -328,7 +332,8 @@ function renderCode(block, theme) {
   })}"><code>${escapeHtml(block.text)}</code></pre>`;
 }
 
-function renderTable(block, theme) {
+function renderTable(block, theme, options = {}) {
+  const compact = options.compact === true;
   const header = block.header
     .map((cell) =>
       tag(
@@ -337,7 +342,7 @@ function renderTable(block, theme) {
           padding: "10px 8px",
           border: `1px solid ${theme.tokens.border}`,
           background: theme.tokens.tableHead,
-          color: theme.tokens.text,
+          color: compact ? undefined : theme.tokens.text,
           fontWeight: "800",
           textAlign: "left"
         },
@@ -355,7 +360,7 @@ function renderTable(block, theme) {
             {
               padding: "10px 8px",
               border: `1px solid ${theme.tokens.border}`,
-              color: theme.tokens.text,
+              color: compact ? undefined : theme.tokens.text,
               verticalAlign: "top"
             },
             renderInline(cell)
@@ -379,10 +384,11 @@ function renderTable(block, theme) {
 </section>`;
 }
 
-function renderImage(block, theme) {
+function renderImage(block, theme, options = {}) {
+  const compact = options.compact === true;
   const caption = block.title || block.alt;
   return `<figure style="${style({
-    margin: "20px 0",
+    margin: compact ? "18px 0" : "20px 0",
     padding: "0",
     textAlign: "center"
   })}">
@@ -392,7 +398,7 @@ function renderImage(block, theme) {
     maxWidth: "100%",
     height: "auto",
     margin: "0 auto",
-    borderRadius: "8px",
+    borderRadius: compact ? "6px" : "8px",
     border: `1px solid ${theme.tokens.border}`
   })}" />
   ${
@@ -425,7 +431,14 @@ function renderMetaBar(theme, recommendation) {
   })}">${escapeHtml(reason)}</section>`;
 }
 
-function paragraphStyle(theme) {
+function paragraphStyle(theme, options = {}) {
+  if (options.compact === true) {
+    return {
+      margin: "0 0 14px",
+      lineHeight: "1.8",
+      wordBreak: "break-word"
+    };
+  }
   return {
     margin: "0 0 15px",
     color: theme.tokens.text,

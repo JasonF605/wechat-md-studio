@@ -26,6 +26,7 @@ WeChat MD Studio 的目标是把核心排版能力做成免费的本地工具：
 - Markdown 转微信公众号兼容 inline HTML。
 - 本地预览页，一键复制 HTML。
 - 智能主题推荐。
+- 推送到微信公众号草稿箱。
 - 支持主题列表查看和手动指定主题。
 - CLI 命令：推荐、检查、转换、预览。
 - 内置 Codex Skill：`skills/wechat-md-studio`。
@@ -62,6 +63,10 @@ wechat-md-studio recommend <article.md> [--json]
 wechat-md-studio inspect <article.md> [--json]
 wechat-md-studio format <article.md> [--theme auto|theme-id] [--out file.html] [--copy] [--json]
 wechat-md-studio preview <article.md> [--theme auto|theme-id] [--out file.html] [--open] [--json]
+wechat-md-studio doctor [--json]
+wechat-md-studio token [--force-refresh] [--json]
+wechat-md-studio upload-cover <cover.jpg> [--json]
+wechat-md-studio draft <article.md> --cover <cover.jpg|first> [--theme auto|theme-id] [--dry-run] [--json]
 wechat-md-studio themes list [--json]
 wechat-md-studio themes show <theme-id> [--json]
 ```
@@ -72,6 +77,7 @@ wechat-md-studio themes show <theme-id> [--json]
 wechat-md-studio recommend articles/post.md --json
 wechat-md-studio preview articles/post.md --theme auto --open
 wechat-md-studio format articles/post.md --theme tech-pulse --out dist/post.wechat.html
+wechat-md-studio draft articles/post.md --cover cover.jpg --dry-run --json
 ```
 
 ## 智能主题推荐
@@ -127,6 +133,36 @@ Use $wechat-md-studio to format this Markdown article for WeChat.
 
 它会走安全流程：先检查文章，再推荐主题，再生成预览，最后按需输出可复制的 HTML。
 
+## 推送到草稿箱
+
+先复制 `.env.example` 为 `.env`，填入公众号后台的 `WECHAT_APPID` 和 `WECHAT_APPSECRET`。
+
+检查配置：
+
+```bash
+wechat-md-studio doctor
+```
+
+先 dry-run：
+
+```bash
+wechat-md-studio draft article.md --thumb-media-id TEST_THUMB_MEDIA_ID --dry-run --json
+```
+
+真正创建草稿：
+
+```bash
+wechat-md-studio draft article.md --cover cover.jpg --theme auto --json
+```
+
+也可以用文章里的第一张本地图片做封面：
+
+```bash
+wechat-md-studio draft article.md --cover first --theme auto --json
+```
+
+详细说明见 [docs/WECHAT_DRAFT.md](docs/WECHAT_DRAFT.md)。
+
 ## 路线图
 
 详见 [docs/ROADMAP.md](docs/ROADMAP.md)。
@@ -136,7 +172,7 @@ Use $wechat-md-studio to format this Markdown article for WeChat.
 - 更多中文公众号主题。
 - 品牌风格配置。
 - 主题预览画廊。
-- 公众号草稿箱发布。
+- 草稿箱更新和删除。
 - 图片上传与替换。
 - 健康、财经等高风险内容的发布前检查。
 - 可选的大模型润色和主题判断。

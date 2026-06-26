@@ -1,49 +1,61 @@
 # WeChat MD Studio
 
-Free, local-first Markdown formatter for WeChat Official Account articles.
+一个免费、本地优先的微信公众号 Markdown 排版工具。
 
-It turns Markdown into WeChat-friendly inline HTML, recommends a theme from the article topic, generates a local preview page, and ships with a Codex skill wrapper for agent-assisted publishing workflows.
+它可以把 Markdown 文章转换成微信公众号编辑器更容易粘贴的 inline HTML，并根据文章主题自动推荐排版风格。比如写 AI 赚钱、工具教程、科普、美食、健康提醒、个人随笔时，会自动匹配不同主题。
 
-## Why This Exists
+## 为什么做这个项目
 
-Many WeChat Markdown tools are either web-only, hard to automate, or place the best formatting behind a hosted API. WeChat MD Studio keeps the core workflow free and local:
+很多公众号 Markdown 排版工具都有几个问题：
 
-- Write Markdown.
-- Let the tool choose a suitable theme.
-- Preview locally.
-- Copy HTML into the WeChat editor.
-- Optionally extend it with official WeChat draft APIs later.
+- 只能在线用，不方便接入自己的写作工作流。
+- 自动化能力弱，批量处理或交给 Agent 调用不顺手。
+- 好看的主题和高级排版依赖付费 API。
+- 主题选择太机械，写什么内容都像同一个模板。
 
-No paid API key is required for local formatting.
+WeChat MD Studio 的目标是把核心排版能力做成免费的本地工具：
 
-## Features
+- 本地转换，不需要付费 API key。
+- Markdown 写作，HTML 粘贴到公众号后台。
+- 根据文章内容自动推荐主题。
+- 可以被 Codex、Claude Code 等 Agent 调用。
+- 后续可扩展到图片上传、草稿箱发布、品牌风格配置。
 
-- Markdown to WeChat-compatible inline HTML.
-- Smart theme recommendation for AI monetization, tutorials, science, food, health, essays, and news.
-- Local preview page with one-click HTML copy.
-- Theme catalog with human-readable design intent.
-- CLI commands for formatting, previewing, inspection, and recommendations.
-- Codex skill wrapper in `skills/wechat-md-studio`.
-- MIT licensed and designed for self-hosting, forks, and community themes.
+## 当前功能
 
-## Quick Start
+- Markdown 转微信公众号兼容 inline HTML。
+- 本地预览页，一键复制 HTML。
+- 智能主题推荐。
+- 支持主题列表查看和手动指定主题。
+- CLI 命令：推荐、检查、转换、预览。
+- 内置 Codex Skill：`skills/wechat-md-studio`。
+- MIT 开源协议，可自由 fork、二次开发、自托管。
+
+## 快速开始
 
 ```bash
-git clone https://github.com/your-name/wechat-md-studio.git
+git clone https://github.com/JasonF605/wechat-md-studio.git
 cd wechat-md-studio
+
 node ./bin/wechat-md-studio.js recommend examples/ai-money.md
 node ./bin/wechat-md-studio.js format examples/ai-money.md --out dist/ai-money.html
 node ./bin/wechat-md-studio.js preview examples/ai-money.md --out dist/ai-money.preview.html --open
 ```
 
-After publishing to npm:
+如果以后发布到 npm，可以这样用：
 
 ```bash
 npm install -g wechat-md-studio
 wechat-md-studio preview article.md --theme auto --open
 ```
 
-## CLI
+也可以使用短命令：
+
+```bash
+wmd preview article.md --open
+```
+
+## 常用命令
 
 ```bash
 wechat-md-studio recommend <article.md> [--json]
@@ -54,72 +66,85 @@ wechat-md-studio themes list [--json]
 wechat-md-studio themes show <theme-id> [--json]
 ```
 
-Short alias after install:
+例子：
 
 ```bash
-wmd preview article.md --open
+wechat-md-studio recommend articles/post.md --json
+wechat-md-studio preview articles/post.md --theme auto --open
+wechat-md-studio format articles/post.md --theme tech-pulse --out dist/post.wechat.html
 ```
 
-## Theme Recommendation
+## 智能主题推荐
 
-The first version uses a transparent rule engine instead of a black-box model. It scores article content and structure, then maps the dominant signal to a theme.
+第一版使用透明的规则引擎，不依赖大模型。工具会分析标题、正文、关键词和文章结构，再推荐一个适合的主题。
 
-| Topic signal | Default theme |
+| 文章类型 | 推荐主题 |
 | --- | --- |
-| AI赚钱, tools, automation, workflow | `tech-pulse` |
-| Tutorial, code, API, deployment | `github-doc` |
-| Science, research, mechanism | `science-clean` |
-| Food, recipe, restaurant, lifestyle | `food-magazine` |
-| Health, safety, elder care | `health-trust` |
-| Personal essay, field notes | `essay-paper` |
-| News, official updates, commentary | `news-brief` |
-| Weak signal | `minimal-ink` |
+| AI 赚钱、AI 工具、自动化、工作流 | `tech-pulse` |
+| 代码教程、API、部署、工具说明 | `github-doc` |
+| 科普、研究、原理解释、知识文章 | `science-clean` |
+| 美食、菜谱、餐厅、生活方式 | `food-magazine` |
+| 健康、安全提醒、老人照护、医学常识 | `health-trust` |
+| 随笔、复盘、日记、个人观察 | `essay-paper` |
+| 新闻、公告、政策、热点评论 | `news-brief` |
+| 信号不明显的长文 | `minimal-ink` |
 
-You can always override it:
+你也可以手动指定主题：
 
 ```bash
 wechat-md-studio format article.md --theme health-trust
 ```
 
-## Markdown Support
+## Markdown 支持
 
-Current support:
+当前支持：
 
-- Frontmatter: `title`, `description`, `category`.
-- Headings.
-- Paragraphs and inline emphasis.
-- Links.
-- Images.
-- Blockquotes.
-- Ordered and unordered lists.
-- Fenced code blocks.
-- Tables.
-- Horizontal rules.
+- Frontmatter：`title`、`description`、`category`
+- 标题
+- 段落
+- 加粗、斜体、行内代码
+- 链接
+- 图片
+- 引用
+- 有序列表和无序列表
+- 代码块
+- 表格
+- 分割线
 
 ## Codex Skill
 
-The skill wrapper lives at:
+项目内置了一个 Codex Skill：
 
 ```text
 skills/wechat-md-studio
 ```
 
-Use it in Codex-style environments as:
+在支持 Skill 的环境里，可以这样调用：
 
 ```text
 Use $wechat-md-studio to format this Markdown article for WeChat.
 ```
 
-The skill calls the local CLI and follows a safe flow: inspect, recommend, preview, then format or copy only when requested.
+它会走安全流程：先检查文章，再推荐主题，再生成预览，最后按需输出可复制的 HTML。
 
-## Roadmap
+## 路线图
 
-See [docs/ROADMAP.md](docs/ROADMAP.md).
+详见 [docs/ROADMAP.md](docs/ROADMAP.md)。
 
-## Project Status
+接下来计划做：
 
-This is an early v0.1 scaffold. The local formatter works, but the project still needs real-world article testing, more themes, browser copy validation against WeChat's editor, and optional draft publishing.
+- 更多中文公众号主题。
+- 品牌风格配置。
+- 主题预览画廊。
+- 公众号草稿箱发布。
+- 图片上传与替换。
+- 健康、财经等高风险内容的发布前检查。
+- 可选的大模型润色和主题判断。
 
-## License
+## 项目状态
 
-MIT.
+当前是早期 v0.1。基础转换、主题推荐和本地预览已经可用，但还需要更多真实公众号文章测试、更多主题、以及在微信公众号后台的复制粘贴验证。
+
+## 开源协议
+
+MIT。

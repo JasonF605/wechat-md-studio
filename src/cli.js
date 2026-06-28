@@ -4,6 +4,19 @@ import { recommendTheme } from "./recommend.js";
 import { renderArticleHtml, renderPreviewPage } from "./renderer.js";
 import { getTheme, listThemes } from "./themes/catalog.js";
 import {
+  buildPublishChecklist,
+  buildVisualPlan,
+  buildXhsPack,
+  defaultDistributionSlug,
+  renderVisualPlanMarkdown,
+  renderXhsMarkdown
+} from "./distribution.js";
+import {
+  buildContentCatalog,
+  filterCatalogItems,
+  renderFrontmatterTemplate
+} from "./catalog.js";
+import {
   buildDraftPayload,
   createDraftFromArticle,
   doctorWechatConfig,
@@ -52,13 +65,33 @@ export async function runCli(argv) {
     return;
   }
 
+  if (command === "visuals") {
+    runVisuals(rest);
+    return;
+  }
+
+  if (command === "xhs") {
+    runXhs(rest);
+    return;
+  }
+
+  if (command === "package" || command === "pack") {
+    runPackage(rest);
+    return;
+  }
+
+  if (command === "catalog") {
+    runCatalog(rest);
+    return;
+  }
+
   if (["recommend", "inspect", "format", "preview"].includes(command)) {
     runArticleCommand(command, rest);
     return;
   }
 
   if (command === "version" || command === "--version") {
-    console.log("wechat-md-studio 0.2.0");
+    console.log("wechat-md-studio 0.4.0");
     return;
   }
 
@@ -241,6 +274,177 @@ async function runDraft(args) {
   );
 }
 
+function runVisuals(args) {
+  const { positional, flags } = parseFlags(args);
+  const input = positional[0];
+  if (!input) throw new Error("visuals requires a Markdown file path.");
+
+  const article = readArticle(input);
+  const recommendation = recommendTheme(article, flags.theme || "auto");
+  const plan = buildVisualPlan(article, recommendation, {
+    count: flags.count,
+    coverSize: flags["cover-size"],
+    inlineSize: flags["inline-size"],
+    xhsSize: flags["xhs-size"]
+  });
+  const out = flags.out || path.join("dist", `${defaultDistributionSlug(article)}.image2-prompts.md`);
+  writeText(out, renderVisualPlanMarkdown(plan));
+
+  printResult(
+    {
+      input: toPosixPath(path.resolve(input)),
+      output: toPosixPath(path.resolve(out)),
+      theme: recommendation.theme.id,
+      label: recommendation.theme.label,
+      provider: plan.provider,
+      coverPrompt: plan.cover.prompt,
+      inlinePrompts: plan.inline.length,
+      plan: flags.json ? plan : undefined
+    },
+    flags
+  );
+}
+
+function runXhs(args) {
+  const { positional, flags } = parseFlags(args);
+  const input = positional[0];
+  if (!input) throw new Error("xhs requires a Markdown file path.");
+
+  const article = readArticle(input);
+  const recommendation = recommendTheme(article, flags.theme || "auto");
+  const pack = buildXhsPack(article, recommendation, {
+    cards: flags.cards,
+    size: flags.size
+  });
+  const base = flags.out || path.join("dist", `${defaultDistributionSlug(article)}.xhs.md`);
+  const jsonOut = flags["json-out"] || replaceExt(base, ".json");
+  writeText(base, renderXhsMarkdown(pack));
+  writeText(jsonOut, JSON.stringify(pack, null, 2));
+
+  printResult(
+    {
+      input: toPosixPath(path.resolve(input)),
+      output: toPosixPath(path.resolve(base)),
+      jsonOutput: toPosixPath(path.resolve(jsonOut)),
+      theme: recommendation.theme.id,
+      label: recommendation.theme.label,
+      provider: pack.provider,
+      cards: pack.cards.length,
+      hashtags: pack.hashtags,
+      pack: flags.json ? pack : undefined
+    },
+    flags
+  );
+}
+
+function runPackage(args) {
+  const { positional, flags } = parseFlags(args);
+  const input = positional[0];
+  if (!input) throw new Error("package requires a Markdown file path.");
+
+  const article = readArticle(input);
+  const recommendation = recommendTheme(article, flags.theme || "auto");
+  const theme = recommendation.theme;
+  const slug = defaultDistributionSlug(article);
+  const outDir = path.resolve(flags["out-dir"] || path.join("dist", `${slug}-publish-package`));
+
+  const articleHtml = renderArticleHtml(article, { theme, recommendation, includeMeta: flags.meta === "true" });
+  const previewHtml = renderPreviewPage(article, { theme, recommendation });
+  const visualPlan = buildVisualPlan(article, recommendation, {
+    count: flags.visuals,
+    coverSize: flags["cover-size"],
+    inlineSize: flags["inline-size"],
+    xhsSize: flags["xhs-size"]
+  });
+  const xhsPack = buildXhsPack(article, recommendation, {
+    cards: flags.cards,
+    size: flags.size
+  });
+
+  const outputs = {
+    wechatHtml: path.join(outDir, "wechat.html"),
+    previewHtml: path.join(outDir, "preview.html"),
+    image2Prompts: path.join(outDir, "image2-prompts.md"),
+    xhsMarkdown: path.join(outDir, "xhs.md"),
+    xhsJson: path.join(outDir, "xhs.json"),
+    checklist: path.join(outDir, "publish-checklist.md")
+  };
+
+  writeText(outputs.wechatHtml, articleHtml);
+  writeText(outputs.previewHtml, previewHtml);
+  writeText(outputs.image2Prompts, renderVisualPlanMarkdown(visualPlan));
+  writeText(outputs.xhsMarkdown, renderXhsMarkdown(xhsPack));
+  writeText(outputs.xhsJson, JSON.stringify(xhsPack, null, 2));
+  writeText(
+    outputs.checklist,
+    buildPublishChecklist(article, recommendation, mapValues(outputs, (filePath) => toPosixPath(path.resolve(filePath))))
+  );
+
+  printResult(
+    {
+      input: toPosixPath(path.resolve(input)),
+      outDir: toPosixPath(outDir),
+      theme: theme.id,
+      label: theme.label,
+      outputs: mapValues(outputs, (filePath) => toPosixPath(path.resolve(filePath))),
+      xhsCards: xhsPack.cards.length,
+      visualPrompts: visualPlan.inline.length + 2
+    },
+    flags
+  );
+}
+
+function runCatalog(args) {
+  const { positional, flags } = parseFlags(args);
+
+  if (positional[0] === "template") {
+    const template = renderFrontmatterTemplate({
+      channel: flags.channel,
+      status: flags.status,
+      site: flags.site,
+      xhs: flags.xhs,
+      wechatDraft: flags["wechat-draft"] ?? flags.wechat_draft,
+      series: flags.series,
+      date: flags.date
+    });
+    if (flags.out) writeText(flags.out, template);
+    if (!flags.out || flags.print) console.log(template.trimEnd());
+    return;
+  }
+
+  const root = positional[0] || flags.root || "articles";
+  const catalog = buildContentCatalog(root, {
+    today: flags.today,
+    timeZone: flags.timezone || flags["time-zone"]
+  });
+  const filters = {
+    channel: flags.channel,
+    status: flags.status,
+    site: flags.site === true,
+    wechat: flags.wechat === true,
+    xhs: flags.xhs === true
+  };
+  const filteredItems = filterCatalogItems(catalog.items, filters);
+  const result = {
+    kind: "catalog",
+    ...catalog,
+    filters,
+    total: filteredItems.length,
+    unfilteredTotal: catalog.total,
+    items: filteredItems
+  };
+
+  if (flags.out) {
+    writeText(flags.out, JSON.stringify(result, null, 2));
+  }
+
+  if (flags.strict && catalog.warnings.length > 0) {
+    throw new Error(`Catalog has ${catalog.warnings.length} warning(s). Run without --strict to inspect them.`);
+  }
+
+  printResult(result, flags);
+}
+
 function printResult(result, flags = {}) {
   if (flags.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -250,6 +454,33 @@ function printResult(result, flags = {}) {
   if (result.themes) {
     for (const theme of result.themes) {
       console.log(`${theme.id.padEnd(15)} ${theme.label} - ${theme.description}`);
+    }
+    return;
+  }
+
+  if (result.kind === "catalog") {
+    console.log(`root: ${result.root}`);
+    console.log(`today: ${result.today}`);
+    console.log(`items: ${result.total}${result.unfilteredTotal !== result.total ? ` / ${result.unfilteredTotal}` : ""}`);
+    console.log(`site: ${result.summary.eligible.site}, wechatDraft: ${result.summary.eligible.wechatDraft}, xhs: ${result.summary.eligible.xhs}`);
+    if (result.warnings.length) {
+      console.log("");
+      console.log(`warnings: ${result.warnings.length}`);
+      for (const warning of result.warnings.slice(0, 12)) {
+        console.log(`- ${warning.code}: ${warning.file}`);
+      }
+      if (result.warnings.length > 12) console.log(`- ... ${result.warnings.length - 12} more`);
+    }
+    if (result.items.length) {
+      console.log("");
+      for (const item of result.items.slice(0, 20)) {
+        const badges = [
+          item.eligible.site ? "site" : "",
+          item.eligible.wechatDraft ? "wechat" : "",
+          item.eligible.xhs ? "xhs" : ""
+        ].filter(Boolean).join(",");
+        console.log(`${item.date} ${item.status.padEnd(9)} ${item.channel.padEnd(10)} ${item.title}${badges ? ` [${badges}]` : ""}`);
+      }
     }
     return;
   }
@@ -277,6 +508,14 @@ function defaultOutPath(input, title, command) {
   return path.join("dist", `${slug}.${suffix}`);
 }
 
+function replaceExt(filePath, ext) {
+  return path.join(path.dirname(filePath), `${path.basename(filePath, path.extname(filePath))}${ext}`);
+}
+
+function mapValues(input, mapper) {
+  return Object.fromEntries(Object.entries(input).map(([key, value]) => [key, mapper(value)]));
+}
+
 function countBlocks(blocks) {
   return blocks.reduce((acc, block) => {
     acc.total += 1;
@@ -297,6 +536,11 @@ Usage:
   wechat-md-studio token [--force-refresh] [--json]
   wechat-md-studio upload-cover <cover.jpg> [--json]
   wechat-md-studio draft <article.md> --cover <cover.jpg|first> [--theme auto|theme-id] [--dry-run] [--json]
+  wechat-md-studio visuals <article.md> [--theme auto|theme-id] [--count 1-4] [--out prompts.md] [--json]
+  wechat-md-studio xhs <article.md> [--theme auto|theme-id] [--cards 4-9] [--out xhs.md] [--json]
+  wechat-md-studio package <article.md> [--theme auto|theme-id] [--out-dir dir] [--cards 4-9] [--visuals 1-4] [--json]
+  wechat-md-studio catalog [articles-dir] [--out content-index.json] [--site|--wechat|--xhs] [--json]
+  wechat-md-studio catalog template [--channel article|image-post|source] [--status draft|published]
   wechat-md-studio themes list [--json]
   wechat-md-studio themes show <theme-id> [--json]
 
@@ -305,5 +549,9 @@ Examples:
   wechat-md-studio preview examples/science.md --theme science-clean
   wechat-md-studio recommend examples/food.md --json
   wechat-md-studio draft examples/ai-money.md --thumb-media-id MEDIA_ID --dry-run --json
+  wechat-md-studio visuals examples/ai-money.md --out dist/ai-money.image2-prompts.md
+  wechat-md-studio xhs examples/ai-money.md --cards 6 --out dist/ai-money.xhs.md
+  wechat-md-studio package examples/ai-money.md --out-dir dist/ai-money-package
+  wechat-md-studio catalog ../articles --out dist/content-index.json
 `);
 }

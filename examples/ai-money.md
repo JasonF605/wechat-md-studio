@@ -2,6 +2,13 @@
 title: 普通人做 AI 副业，第一步别急着买课
 category: ai-money
 description: 一篇关于 AI 赚钱、工具工作流和小实验验证的公众号文章示例。
+date: 2026-06-26
+channel: article
+status: draft
+series: ai-money
+site: false
+wechat_draft: true
+xhs: true
 ---
 
 # 普通人做 AI 副业，第一步别急着买课

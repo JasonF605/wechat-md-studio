@@ -7,7 +7,7 @@ description: Format Markdown articles for WeChat Official Account publishing wit
 
 ## Overview
 
-Use the local `wechat-md-studio` CLI to turn Markdown into WeChat-friendly inline HTML, pick a theme, and create preview files. The formatter is local-first and does not require paid API keys for conversion or preview.
+Use the local `wechat-md-studio` CLI to turn Markdown into WeChat-friendly inline HTML, pick a theme, create preview files, generate image2 prompts, prepare Xiaohongshu distribution packs, and inspect a content directory before publishing. The formatter is local-first and does not require paid API keys for conversion or preview.
 
 ## Workflow
 
@@ -15,7 +15,11 @@ Use the local `wechat-md-studio` CLI to turn Markdown into WeChat-friendly inlin
 2. Generate a preview before final copy/publish work.
 3. Format to an HTML snippet only after the article path and theme are clear.
 4. Use `--copy` only when the user asks to place HTML on the clipboard.
-5. Create WeChat drafts only when the user explicitly asks for draft creation or upload to the WeChat draft box.
+5. Use `package` when the user wants the normal post-article workflow: WeChat preview, image2 prompts, Xiaohongshu cards, and a publishing checklist.
+6. Use `visuals` when the user only needs cover/body image prompts for image2 / gpt-image-2.
+7. Use `xhs` when the user wants a Xiaohongshu version or multi-channel distribution.
+8. Use `catalog` before building a self-owned site or multi-channel batch so article posts, image posts, future drafts, deleted items, and source notes are not mixed together.
+9. Create WeChat drafts only when the user explicitly asks for draft creation or upload to the WeChat draft box.
 
 ## Commands
 
@@ -27,6 +31,11 @@ node ./bin/wechat-md-studio.js inspect <article.md> --json
 node ./bin/wechat-md-studio.js preview <article.md> --theme auto --out dist/article.preview.html
 node ./bin/wechat-md-studio.js format <article.md> --theme auto --out dist/article.html
 node ./bin/wechat-md-studio.js doctor --json
+node ./bin/wechat-md-studio.js visuals <article.md> --theme auto --out dist/article.image2-prompts.md
+node ./bin/wechat-md-studio.js xhs <article.md> --theme auto --cards 6 --out dist/article.xhs.md
+node ./bin/wechat-md-studio.js package <article.md> --theme auto --out-dir dist/article-package
+node ./bin/wechat-md-studio.js catalog ../articles --out dist/content-index.json --json
+node ./bin/wechat-md-studio.js catalog template --channel article --status draft
 node ./bin/wechat-md-studio.js draft <article.md> --cover <cover.jpg|first> --theme auto --dry-run --json
 node ./bin/wechat-md-studio.js draft <article.md> --cover <cover.jpg|first> --theme auto --json
 ```
@@ -36,6 +45,10 @@ Use the installed binary when available:
 ```bash
 wechat-md-studio preview <article.md> --theme auto --open
 wmd format <article.md> --theme tech-pulse --copy
+wmd visuals <article.md> --out dist/article.image2-prompts.md
+wmd xhs <article.md> --cards 6 --out dist/article.xhs.md
+wmd package <article.md> --out-dir dist/article-package
+wmd catalog articles --site
 wmd draft <article.md> --cover first --theme auto --json
 ```
 
@@ -57,6 +70,10 @@ wmd draft <article.md> --cover first --theme auto --json
 - Write generated HTML under `dist/` by default or the user-specified output path.
 - Report the selected theme, output path, and whether clipboard copy was performed.
 - If preview is requested, return the preview HTML file path and mention that `--open` opens it in a browser.
+- If the user asks for images, do not create fake local image assets by default. Generate image2 prompts with `visuals` or `package`, then use the user's chosen image2/gpt-image-2 flow.
+- If the user asks for Xiaohongshu, generate an `xhs.md` plus `xhs.json` card package with `xhs` or `package`.
+- If the user asks for a self-owned site, knowledge base cleanup, batch publishing, or mixed content folders, run `catalog` first and require explicit metadata before treating content as publishable.
+- For the standard article workflow after writing, prefer `package` so WeChat HTML, preview, image prompts, Xiaohongshu assets, and checklist stay together.
 - If a command fails, run `inspect` or `recommend --json` to narrow whether the issue is parsing, theme selection, or output path.
 - Run `draft --dry-run --json` before creating a live WeChat draft unless the user explicitly asks to publish immediately.
 - Never print full AppSecret values, access tokens, or `.env` contents.
@@ -70,6 +87,10 @@ wmd draft <article.md> --cover first --theme auto --json
 node ./bin/wechat-md-studio.js themes list
 node ./bin/wechat-md-studio.js themes show tech-pulse --json
 node ./bin/wechat-md-studio.js inspect examples/ai-money.md --json
+node ./bin/wechat-md-studio.js visuals examples/ai-money.md --out dist/ai-money.image2-prompts.md --json
+node ./bin/wechat-md-studio.js xhs examples/ai-money.md --out dist/ai-money.xhs.md --json
+node ./bin/wechat-md-studio.js package examples/ai-money.md --out-dir dist/ai-money-package --json
+node ./bin/wechat-md-studio.js catalog examples --json
 node ./bin/wechat-md-studio.js draft examples/ai-money.md --thumb-media-id TEST_THUMB_MEDIA_ID --dry-run --json
 npm run smoke
 ```

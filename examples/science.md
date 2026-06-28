@@ -2,6 +2,13 @@
 title: 为什么人在压力大时更容易乱买东西
 category: science
 description: 科普解释型文章示例。
+date: 2026-06-26
+channel: article
+status: draft
+series: science
+site: false
+wechat_draft: true
+xhs: true
 ---
 
 # 为什么人在压力大时更容易乱买东西

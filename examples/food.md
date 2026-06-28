@@ -2,6 +2,13 @@
 title: 一碗番茄鸡蛋面，怎么做才不寡淡
 category: food
 description: 美食生活类公众号文章示例。
+date: 2026-06-26
+channel: article
+status: draft
+series: food
+site: false
+wechat_draft: true
+xhs: true
 ---
 
 # 一碗番茄鸡蛋面，怎么做才不寡淡

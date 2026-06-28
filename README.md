@@ -27,8 +27,12 @@ WeChat MD Studio 的目标是把核心排版能力做成免费的本地工具：
 - 本地预览页，一键复制 HTML。
 - 智能主题推荐。
 - 推送到微信公众号草稿箱。
+- 生成 image2 / gpt-image-2 封面和正文图提示词。
+- 拆出小红书图文卡片脚本和提示词。
+- 一键生成公众号 + 小红书多渠道发布包。
+- 扫描内容目录，生成内容总账，区分文章号、贴图号、素材、草稿、废稿和公开站资格。
 - 支持主题列表查看和手动指定主题。
-- CLI 命令：推荐、检查、转换、预览。
+- CLI 命令：推荐、检查、转换、预览、配图、小红书、分发包、内容总账。
 - 内置 Codex Skill：`skills/wechat-md-studio`。
 - MIT 开源协议，可自由 fork、二次开发、自托管。
 
@@ -41,6 +45,7 @@ cd wechat-md-studio
 node ./bin/wechat-md-studio.js recommend examples/ai-money.md
 node ./bin/wechat-md-studio.js format examples/ai-money.md --out dist/ai-money.html
 node ./bin/wechat-md-studio.js preview examples/ai-money.md --out dist/ai-money.preview.html --open
+node ./bin/wechat-md-studio.js package examples/ai-money.md --out-dir dist/ai-money-package
 ```
 
 如果以后发布到 npm，可以这样用：
@@ -67,6 +72,11 @@ wechat-md-studio doctor [--json]
 wechat-md-studio token [--force-refresh] [--json]
 wechat-md-studio upload-cover <cover.jpg> [--json]
 wechat-md-studio draft <article.md> --cover <cover.jpg|first> [--theme auto|theme-id] [--dry-run] [--json]
+wechat-md-studio visuals <article.md> [--theme auto|theme-id] [--count 1-4] [--out prompts.md] [--json]
+wechat-md-studio xhs <article.md> [--theme auto|theme-id] [--cards 4-9] [--out xhs.md] [--json]
+wechat-md-studio package <article.md> [--theme auto|theme-id] [--out-dir dir] [--cards 4-9] [--visuals 1-4] [--json]
+wechat-md-studio catalog [articles-dir] [--out content-index.json] [--site|--wechat|--xhs] [--json]
+wechat-md-studio catalog template [--channel article|image-post|source] [--status draft|published]
 wechat-md-studio themes list [--json]
 wechat-md-studio themes show <theme-id> [--json]
 ```
@@ -78,7 +88,95 @@ wechat-md-studio recommend articles/post.md --json
 wechat-md-studio preview articles/post.md --theme auto --open
 wechat-md-studio format articles/post.md --theme tech-pulse --out dist/post.wechat.html
 wechat-md-studio draft articles/post.md --cover cover.jpg --dry-run --json
+wechat-md-studio visuals articles/post.md --out dist/post.image2-prompts.md
+wechat-md-studio xhs articles/post.md --cards 6 --out dist/post.xhs.md
+wechat-md-studio package articles/post.md --out-dir dist/post-package
+wechat-md-studio catalog articles --out content-index.json
 ```
+
+## 多渠道分发
+
+`wechat-md-studio` 不只做公众号排版，也可以把文章拆成多渠道发布素材。
+
+### image2 配图提示词
+
+```bash
+wechat-md-studio visuals article.md --theme auto --count 2 --out dist/article.image2-prompts.md
+```
+
+这个命令会根据文章主题和结构生成：
+
+- 公众号封面提示词。
+- 1-4 张正文结构图提示词。
+- 小红书首图提示词。
+
+默认出图工具是 `image2 / gpt-image-2`。工具只生成提示词，不自动调用付费图片 API。
+
+### 小红书图文包
+
+```bash
+wechat-md-studio xhs article.md --cards 6 --out dist/article.xhs.md
+```
+
+它会输出：
+
+- 小红书发布文案。
+- 4-9 张图卡脚本。
+- 每张图对应的 image2 提示词。
+- 同名 `.json` 文件，方便后续接渲染器或自动化发布。
+
+### 一键发布包
+
+```bash
+wechat-md-studio package article.md --out-dir dist/article-package
+```
+
+会生成一个完整目录：
+
+```text
+wechat.html
+preview.html
+image2-prompts.md
+xhs.md
+xhs.json
+publish-checklist.md
+```
+
+推荐文章写完后先跑：
+
+```bash
+wechat-md-studio package article.md --out-dir dist/article-package
+```
+
+再按 `publish-checklist.md` 做排版、出图、dry-run 和草稿箱记录。
+
+## 内容总账
+
+如果你的目录里同时有文章号长文、贴图号内容、未来稿、废稿和资料卡，先不要直接把整个目录拿去建站或分发。用 `catalog` 生成内容总账：
+
+```bash
+wechat-md-studio catalog articles --out content-index.json
+wechat-md-studio catalog articles --site
+```
+
+推荐每篇内容都补一段 frontmatter：
+
+```markdown
+---
+title: 待发布内容标题
+date: 2026-06-27
+channel: article
+status: draft
+series: ai-money
+site: false
+wechat_draft: true
+xhs: true
+---
+```
+
+默认只有 `channel: article`、`status: published`、`site: true` 且日期不晚于今天的内容，才具备进入自有站的资格。没有 frontmatter 的旧稿会被列入 warning，不会默认当成可发布内容。
+
+详细说明见 [docs/CONTENT_CATALOG.md](docs/CONTENT_CATALOG.md)。
 
 ## 智能主题推荐
 
@@ -105,7 +203,7 @@ wechat-md-studio format article.md --theme health-trust
 
 当前支持：
 
-- Frontmatter：`title`、`description`、`category`
+- Frontmatter：`title`、`description`、`category`，以及内容总账使用的 `date`、`channel`、`status`、`series`、`site`、`wechat_draft`、`xhs`
 - 标题
 - 段落
 - 加粗、斜体、行内代码
@@ -179,7 +277,7 @@ wechat-md-studio draft article.md --cover first --theme auto --json
 
 ## 项目状态
 
-当前是早期 v0.1。基础转换、主题推荐和本地预览已经可用，但还需要更多真实公众号文章测试、更多主题、以及在微信公众号后台的复制粘贴验证。
+当前是早期 v0.4。基础转换、主题推荐、本地预览、草稿箱 dry-run、多渠道分发包和内容总账已经可用，但还需要更多真实公众号文章、小红书图文和自有站部署测试。
 
 ## 开源协议
 

@@ -17,6 +17,12 @@ import {
   renderFrontmatterTemplate
 } from "./catalog.js";
 import {
+  exportThemeDesignTokens,
+  lintAllThemeDesigns,
+  lintThemeDesign,
+  renderThemeDesignMarkdown
+} from "./design-system.js";
+import {
   buildDraftPayload,
   createDraftFromArticle,
   doctorWechatConfig,
@@ -91,7 +97,7 @@ export async function runCli(argv) {
   }
 
   if (command === "version" || command === "--version") {
-    console.log("wechat-md-studio 0.4.0");
+    console.log("wechat-md-studio 0.5.0");
     return;
   }
 
@@ -174,6 +180,35 @@ function runThemes(args) {
     const themeId = positional[1];
     if (!themeId) throw new Error("themes show requires a theme id.");
     printResult(getTheme(themeId), flags);
+    return;
+  }
+
+  if (subcommand === "design") {
+    const themeId = positional[1] || flags.theme || "minimal-ink";
+    const markdown = renderThemeDesignMarkdown(themeId);
+    if (flags.out) writeText(flags.out, markdown);
+    if (!flags.out || flags.print) console.log(markdown);
+    return;
+  }
+
+  if (subcommand === "lint") {
+    const themeId = positional[1] || flags.theme;
+    const result = themeId ? lintThemeDesign(themeId) : lintAllThemeDesigns();
+    if (flags.strict && result.summary.error > 0) {
+      printResult(result, flags);
+      throw new Error(`Theme design lint failed with ${result.summary.error} error(s).`);
+    }
+    printResult(result, flags);
+    return;
+  }
+
+  if (subcommand === "export") {
+    const themeId = positional[1] || flags.theme || "minimal-ink";
+    const result = exportThemeDesignTokens(themeId);
+    if (flags.out) {
+      writeText(flags.out, JSON.stringify(result, null, 2));
+    }
+    printResult({ kind: "theme-design-export", ...result }, flags);
     return;
   }
 
@@ -485,6 +520,25 @@ function printResult(result, flags = {}) {
     return;
   }
 
+  if (result.kind === "theme-design-lint") {
+    const target = result.theme === "all" ? "all themes" : result.theme;
+    console.log(`theme design lint: ${target}`);
+    console.log(`errors: ${result.summary.error}, warnings: ${result.summary.warning}, info: ${result.summary.info}`);
+    const findings = result.findings || [];
+    for (const item of findings.filter((finding) => finding.severity !== "info").slice(0, 20)) {
+      const theme = item.theme ? `${item.theme}: ` : "";
+      console.log(`- ${item.severity}: ${theme}${item.path} - ${item.message}`);
+    }
+    return;
+  }
+
+  if (result.kind === "theme-design-export") {
+    console.log(`${result.id} - ${result.name}`);
+    console.log(result.description);
+    console.log(`platform: ${result.platform}`);
+    return;
+  }
+
   if (result.tokens) {
     console.log(`${result.id} - ${result.label}`);
     console.log(result.description);
@@ -543,6 +597,9 @@ Usage:
   wechat-md-studio catalog template [--channel article|image-post|source] [--status draft|published]
   wechat-md-studio themes list [--json]
   wechat-md-studio themes show <theme-id> [--json]
+  wechat-md-studio themes design <theme-id> [--out DESIGN.md]
+  wechat-md-studio themes lint [theme-id] [--json] [--strict]
+  wechat-md-studio themes export <theme-id> [--out design-tokens.json] [--json]
 
 Examples:
   wechat-md-studio format examples/ai-money.md --out dist/article.html
@@ -553,5 +610,6 @@ Examples:
   wechat-md-studio xhs examples/ai-money.md --cards 6 --out dist/ai-money.xhs.md
   wechat-md-studio package examples/ai-money.md --out-dir dist/ai-money-package
   wechat-md-studio catalog ../articles --out dist/content-index.json
+  wechat-md-studio themes design tech-pulse --out dist/tech-pulse.DESIGN.md
 `);
 }

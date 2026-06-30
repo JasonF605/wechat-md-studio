@@ -1,6 +1,6 @@
 {
   "name": "wechat-md-studio",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Free, local-first Markdown formatter for WeChat Official Account articles with smart theme recommendations.",
   "type": "module",
   "bin": {
@@ -15,9 +15,11 @@
     "xhs:example": "node ./bin/wechat-md-studio.js xhs examples/ai-money.md --out dist/ai-money.xhs.md",
     "package:example": "node ./bin/wechat-md-studio.js package examples/ai-money.md --out-dir dist/ai-money-package",
     "catalog:example": "node ./bin/wechat-md-studio.js catalog examples --json",
+    "themes:lint": "node ./bin/wechat-md-studio.js themes lint --json",
+    "themes:design": "node ./bin/wechat-md-studio.js themes design tech-pulse --out dist/tech-pulse.DESIGN.md",
     "draft:dry-run": "node ./bin/wechat-md-studio.js draft examples/ai-money.md --thumb-media-id TEST_THUMB_MEDIA_ID --dry-run --json",
     "test": "node ./test/smoke.test.js",
-    "smoke": "node ./bin/wechat-md-studio.js recommend examples/ai-money.md --json && node ./bin/wechat-md-studio.js format examples/ai-money.md --out dist/ai-money.html && node ./bin/wechat-md-studio.js preview examples/science.md --out dist/science.preview.html && node ./bin/wechat-md-studio.js visuals examples/ai-money.md --out dist/ai-money.image2-prompts.md && node ./bin/wechat-md-studio.js xhs examples/ai-money.md --out dist/ai-money.xhs.md && node ./bin/wechat-md-studio.js catalog examples --json"
+    "smoke": "node ./bin/wechat-md-studio.js recommend examples/ai-money.md --json && node ./bin/wechat-md-studio.js format examples/ai-money.md --out dist/ai-money.html && node ./bin/wechat-md-studio.js preview examples/science.md --out dist/science.preview.html && node ./bin/wechat-md-studio.js visuals examples/ai-money.md --out dist/ai-money.image2-prompts.md && node ./bin/wechat-md-studio.js xhs examples/ai-money.md --out dist/ai-money.xhs.md && node ./bin/wechat-md-studio.js catalog examples --json && node ./bin/wechat-md-studio.js themes lint --json && node ./bin/wechat-md-studio.js themes design tech-pulse --out dist/tech-pulse.DESIGN.md"
   },
   "keywords": [
     "wechat",

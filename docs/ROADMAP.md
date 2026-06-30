@@ -31,7 +31,15 @@
 - Strict mode for automation and static-site deployment gates.
 - Content-index JSON output for self-owned sites and future multi-platform workflows.
 
-## v0.5 Theme Studio
+## v0.5 Theme Design System
+
+- WeChat-focused DESIGN.md generation for built-in themes.
+- Theme lint command for token completeness, hex colors, and reading contrast.
+- Theme token export for future preview galleries, self-owned sites, and editor tooling.
+- Human-readable design intent for AI agents, adapted from DESIGN.md-style workflows.
+- Agent guidance that avoids generic AI-looking color swaps and web-app-only layout assumptions.
+
+Planned follow-ups:
 
 - More theme packs for finance, education, travel, parenting, and product launches.
 - Theme token editor.

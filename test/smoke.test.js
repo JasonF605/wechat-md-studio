@@ -17,6 +17,12 @@ import {
   renderVisualPlanMarkdown,
   renderXhsMarkdown
 } from "../src/distribution.js";
+import {
+  exportThemeDesignTokens,
+  lintAllThemeDesigns,
+  lintThemeDesign,
+  renderThemeDesignMarkdown
+} from "../src/design-system.js";
 
 const cases = [
   ["examples/ai-money.md", "tech-pulse"],
@@ -134,5 +140,23 @@ assert.equal(filterCatalogItems(catalog.items, { site: true }).length, 1);
 assert.equal(filterCatalogItems(catalog.items, { xhs: true }).length, 2);
 assert.ok(catalog.warnings.some((warning) => warning.code === "missing_frontmatter"));
 assert.match(renderFrontmatterTemplate({ channel: "article", status: "published", site: true }), /site: true/);
+
+const designMd = renderThemeDesignMarkdown("tech-pulse");
+assert.match(designMd, /platform: wechat-official-account/);
+assert.match(designMd, /WeChat Rendering Rules/);
+assert.match(designMd, /AI Side Hustle Tech DESIGN\.md/);
+
+const designTokens = exportThemeDesignTokens("health-trust");
+assert.equal(designTokens.platform, "wechat-official-account");
+assert.equal(designTokens.renderer, "inline-html");
+assert.equal(designTokens.tokens.typography.body.fontSize, "16px");
+
+const singleThemeLint = lintThemeDesign("tech-pulse");
+assert.equal(singleThemeLint.summary.error, 0);
+assert.ok(singleThemeLint.findings.some((finding) => finding.path.startsWith("contrast.")));
+
+const allThemeLint = lintAllThemeDesigns();
+assert.equal(allThemeLint.summary.error, 0);
+assert.ok(allThemeLint.results.length >= 8);
 
 console.log("All smoke tests passed.");

@@ -31,6 +31,7 @@ WeChat MD Studio 的目标是把核心排版能力做成免费的本地工具：
 - 拆出小红书图文卡片脚本和提示词。
 - 一键生成公众号 + 小红书多渠道发布包。
 - 扫描内容目录，生成内容总账，区分文章号、贴图号、素材、草稿、废稿和公开站资格。
+- 生成公众号版 DESIGN.md，校验主题 token 和阅读对比度，让 Agent 稳定理解视觉规范。
 - 支持主题列表查看和手动指定主题。
 - CLI 命令：推荐、检查、转换、预览、配图、小红书、分发包、内容总账。
 - 内置 Codex Skill：`skills/wechat-md-studio`。
@@ -79,6 +80,9 @@ wechat-md-studio catalog [articles-dir] [--out content-index.json] [--site|--wec
 wechat-md-studio catalog template [--channel article|image-post|source] [--status draft|published]
 wechat-md-studio themes list [--json]
 wechat-md-studio themes show <theme-id> [--json]
+wechat-md-studio themes design <theme-id> [--out DESIGN.md]
+wechat-md-studio themes lint [theme-id] [--json] [--strict]
+wechat-md-studio themes export <theme-id> [--out tokens.json] [--json]
 ```
 
 例子：
@@ -92,6 +96,8 @@ wechat-md-studio visuals articles/post.md --out dist/post.image2-prompts.md
 wechat-md-studio xhs articles/post.md --cards 6 --out dist/post.xhs.md
 wechat-md-studio package articles/post.md --out-dir dist/post-package
 wechat-md-studio catalog articles --out content-index.json
+wechat-md-studio themes design tech-pulse --out dist/tech-pulse.DESIGN.md
+wechat-md-studio themes lint --strict
 ```
 
 ## 多渠道分发
@@ -177,6 +183,22 @@ xhs: true
 默认只有 `channel: article`、`status: published`、`site: true` 且日期不晚于今天的内容，才具备进入自有站的资格。没有 frontmatter 的旧稿会被列入 warning，不会默认当成可发布内容。
 
 详细说明见 [docs/CONTENT_CATALOG.md](docs/CONTENT_CATALOG.md)。
+
+## 公众号 DESIGN.md 设计系统
+
+从 v0.5 开始，`wechat-md-studio` 支持把内置主题导出成公众号版 `DESIGN.md`。
+
+它借鉴 Google Labs `design.md` 的思路，但面向微信公众号做了适配：不生成 Tailwind，不依赖外部字体，而是把颜色、字号、间距、圆角、H1/H2/引用/表格/图片说明这些公众号组件规则写清楚。这样 Agent 以后不是只会“换个颜色”，而是能按文章类型稳定执行一套视觉规范。
+
+常用命令：
+
+```bash
+wechat-md-studio themes design tech-pulse --out dist/tech-pulse.DESIGN.md
+wechat-md-studio themes lint --strict
+wechat-md-studio themes export health-trust --out dist/health-trust.tokens.json
+```
+
+详见 [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)。
 
 ## 智能主题推荐
 
@@ -277,7 +299,7 @@ wechat-md-studio draft article.md --cover first --theme auto --json
 
 ## 项目状态
 
-当前是早期 v0.4。基础转换、主题推荐、本地预览、草稿箱 dry-run、多渠道分发包和内容总账已经可用，但还需要更多真实公众号文章、小红书图文和自有站部署测试。
+当前是早期 v0.5。基础转换、主题推荐、本地预览、草稿箱 dry-run、多渠道分发包、内容总账和公众号 DESIGN.md 设计系统已经可用，但还需要更多真实公众号文章、小红书图文和自有站部署测试。
 
 ## 开源协议
 

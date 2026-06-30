@@ -15,6 +15,12 @@ export {
   renderFrontmatterTemplate
 } from "./catalog.js";
 export {
+  exportThemeDesignTokens,
+  lintAllThemeDesigns,
+  lintThemeDesign,
+  renderThemeDesignMarkdown
+} from "./design-system.js";
+export {
   WeChatApiError,
   addDraft,
   buildDraftPayload,

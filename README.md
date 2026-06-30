@@ -30,11 +30,12 @@ WeChat MD Studio 的目标是把核心排版能力做成免费的本地工具：
 - 生成 image2 / gpt-image-2 封面和正文图提示词。
 - 拆出小红书图文卡片脚本和提示词。
 - 一键生成公众号 + 小红书多渠道发布包。
+- 一键生成文章号工作流报告，把预览、配图、小红书、检查表和发布闸门放到同一个目录。
 - 扫描内容目录，生成内容总账，区分文章号、贴图号、素材、草稿、废稿和公开站资格。
 - 生成公众号版 DESIGN.md，校验主题 token 和阅读对比度，让 Agent 稳定理解视觉规范。
 - 支持主题列表查看和手动指定主题。
-- CLI 命令：推荐、检查、转换、预览、配图、小红书、分发包、内容总账。
-- 内置 Codex Skill：`skills/wechat-md-studio`。
+- CLI 命令：推荐、检查、转换、预览、配图、小红书、分发包、工作流、内容总账。
+- 内置 Codex Skills：`skills/wechat-md-studio`、`skills/wechat-content-workflow`。
 - MIT 开源协议，可自由 fork、二次开发、自托管。
 
 ## 快速开始
@@ -47,6 +48,7 @@ node ./bin/wechat-md-studio.js recommend examples/ai-money.md
 node ./bin/wechat-md-studio.js format examples/ai-money.md --out dist/ai-money.html
 node ./bin/wechat-md-studio.js preview examples/ai-money.md --out dist/ai-money.preview.html --open
 node ./bin/wechat-md-studio.js package examples/ai-money.md --out-dir dist/ai-money-package
+node ./bin/wechat-md-studio.js workflow examples/ai-money.md --out-dir dist/ai-money-workflow
 ```
 
 如果以后发布到 npm，可以这样用：
@@ -76,6 +78,7 @@ wechat-md-studio draft <article.md> --cover <cover.jpg|first> [--theme auto|them
 wechat-md-studio visuals <article.md> [--theme auto|theme-id] [--count 1-4] [--out prompts.md] [--json]
 wechat-md-studio xhs <article.md> [--theme auto|theme-id] [--cards 4-9] [--out xhs.md] [--json]
 wechat-md-studio package <article.md> [--theme auto|theme-id] [--out-dir dir] [--cards 4-9] [--visuals 1-4] [--json]
+wechat-md-studio workflow <article.md> [--theme auto|theme-id] [--out-dir dir] [--cards 4-9] [--visuals 1-4] [--json]
 wechat-md-studio catalog [articles-dir] [--out content-index.json] [--site|--wechat|--xhs] [--json]
 wechat-md-studio catalog template [--channel article|image-post|source] [--status draft|published]
 wechat-md-studio themes list [--json]
@@ -95,6 +98,7 @@ wechat-md-studio draft articles/post.md --cover cover.jpg --dry-run --json
 wechat-md-studio visuals articles/post.md --out dist/post.image2-prompts.md
 wechat-md-studio xhs articles/post.md --cards 6 --out dist/post.xhs.md
 wechat-md-studio package articles/post.md --out-dir dist/post-package
+wechat-md-studio workflow articles/post.md --out-dir dist/post-workflow
 wechat-md-studio catalog articles --out content-index.json
 wechat-md-studio themes design tech-pulse --out dist/tech-pulse.DESIGN.md
 wechat-md-studio themes lint --strict
@@ -155,6 +159,51 @@ wechat-md-studio package article.md --out-dir dist/article-package
 ```
 
 再按 `publish-checklist.md` 做排版、出图、dry-run 和草稿箱记录。
+
+## 文章号工作流
+
+如果你想要 baoyu 那种“流程型助手”的形式，推荐跑 `workflow`。它不会把项目变成臃肿平台，而是在 `package` 的基础上多生成一份操作报告，把每天文章号需要看的东西放在一起。
+
+```bash
+wechat-md-studio workflow article.md --theme auto --out-dir dist/article-workflow
+```
+
+会生成：
+
+```text
+workflow-report.md
+workflow-report.json
+wechat.html
+preview.html
+image2-prompts.md
+xhs.md
+xhs.json
+publish-checklist.md
+```
+
+`workflow-report.md` 会告诉你：
+
+- 推荐了哪个主题，为什么。
+- 文章有没有标题过长、结构过少、缺 frontmatter 等问题。
+- 公众号、小红书、自有站分别处于什么状态。
+- 哪些发布闸门已经通过，哪些还要人工处理。
+- 下一步该预览、出图、dry-run，还是推草稿箱。
+
+配套的 Codex Skill 是：
+
+```text
+skills/wechat-content-workflow
+```
+
+以后你可以让 Codex 这样说：
+
+```text
+Use $wechat-content-workflow to run the article account SOP for this Markdown article.
+```
+
+它会把 `wechat-md-studio` 当成底层工具来跑，不会跳过预览和 dry-run，也不会替你最终群发。
+
+详细说明见 [docs/WORKFLOW.md](docs/WORKFLOW.md)。
 
 ## 内容总账
 
@@ -237,21 +286,24 @@ wechat-md-studio format article.md --theme health-trust
 - 表格
 - 分割线
 
-## Codex Skill
+## Codex Skills
 
-项目内置了一个 Codex Skill：
+项目内置了两个 Codex Skill：
 
 ```text
 skills/wechat-md-studio
+skills/wechat-content-workflow
 ```
 
 在支持 Skill 的环境里，可以这样调用：
 
 ```text
 Use $wechat-md-studio to format this Markdown article for WeChat.
+Use $wechat-content-workflow to run the article account SOP for this Markdown article.
 ```
 
-它会走安全流程：先检查文章，再推荐主题，再生成预览，最后按需输出可复制的 HTML。
+`wechat-md-studio` 负责排版、预览、配图提示词、小红书包和草稿箱 API。
+`wechat-content-workflow` 负责文章号 SOP：知识库检查、工作流报告、发布闸门和人工确认提醒。
 
 ## 推送到草稿箱
 
@@ -299,7 +351,7 @@ wechat-md-studio draft article.md --cover first --theme auto --json
 
 ## 项目状态
 
-当前是早期 v0.5。基础转换、主题推荐、本地预览、草稿箱 dry-run、多渠道分发包、内容总账和公众号 DESIGN.md 设计系统已经可用，但还需要更多真实公众号文章、小红书图文和自有站部署测试。
+当前是早期 v0.6。基础转换、主题推荐、本地预览、草稿箱 dry-run、多渠道分发包、文章号工作流、内容总账和公众号 DESIGN.md 设计系统已经可用，但还需要更多真实公众号文章、小红书图文和自有站部署测试。
 
 ## 开源协议
 

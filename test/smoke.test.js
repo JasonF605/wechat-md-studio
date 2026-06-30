@@ -23,6 +23,7 @@ import {
   lintThemeDesign,
   renderThemeDesignMarkdown
 } from "../src/design-system.js";
+import { buildWorkflowReport, renderWorkflowMarkdown } from "../src/workflow.js";
 
 const cases = [
   ["examples/ai-money.md", "tech-pulse"],
@@ -84,6 +85,20 @@ assert.equal(xhsPack.platform, "xiaohongshu");
 assert.equal(xhsPack.cards.length, 6);
 assert.match(xhsPack.cards[0].prompt, /小红书图文卡/);
 assert.match(renderXhsMarkdown(xhsPack), /小红书图文分发包/);
+
+const workflowReport = buildWorkflowReport(article, recommendation, {
+  workflowReport: "dist/workflow-report.md",
+  wechatHtml: "dist/wechat.html",
+  previewHtml: "dist/preview.html",
+  image2Prompts: "dist/image2-prompts.md",
+  xhsMarkdown: "dist/xhs.md",
+  xhsJson: "dist/xhs.json",
+  checklist: "dist/publish-checklist.md"
+});
+assert.equal(workflowReport.kind, "workflow-report");
+assert.equal(workflowReport.theme.id, "tech-pulse");
+assert.ok(workflowReport.gates.some((gate) => gate.id === "preview" && gate.ok));
+assert.match(renderWorkflowMarkdown(workflowReport), /文章号工作流报告/);
 
 const catalogRoot = fs.mkdtempSync(path.join(os.tmpdir(), "wmd-catalog-"));
 fs.mkdirSync(path.join(catalogRoot, "2026-06-27-published-article"), { recursive: true });

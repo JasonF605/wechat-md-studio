@@ -22,6 +22,7 @@ import {
   lintThemeDesign,
   renderThemeDesignMarkdown
 } from "./design-system.js";
+import { buildWorkflowReport, renderWorkflowMarkdown } from "./workflow.js";
 import {
   buildDraftPayload,
   createDraftFromArticle,
@@ -86,6 +87,11 @@ export async function runCli(argv) {
     return;
   }
 
+  if (command === "workflow" || command === "sop") {
+    runWorkflow(rest);
+    return;
+  }
+
   if (command === "catalog") {
     runCatalog(rest);
     return;
@@ -97,7 +103,7 @@ export async function runCli(argv) {
   }
 
   if (command === "version" || command === "--version") {
-    console.log("wechat-md-studio 0.5.0");
+    console.log("wechat-md-studio 0.6.0");
     return;
   }
 
@@ -429,6 +435,78 @@ function runPackage(args) {
   );
 }
 
+function runWorkflow(args) {
+  const { positional, flags } = parseFlags(args);
+  const input = positional[0];
+  if (!input) throw new Error("workflow requires a Markdown file path.");
+
+  const article = readArticle(input);
+  const recommendation = recommendTheme(article, flags.theme || "auto");
+  const theme = recommendation.theme;
+  const slug = defaultDistributionSlug(article);
+  const outDir = path.resolve(flags["out-dir"] || path.join("dist", `${slug}-workflow`));
+
+  const articleHtml = renderArticleHtml(article, { theme, recommendation, includeMeta: flags.meta === "true" });
+  const previewHtml = renderPreviewPage(article, { theme, recommendation });
+  const visualPlan = buildVisualPlan(article, recommendation, {
+    count: flags.visuals,
+    coverSize: flags["cover-size"],
+    inlineSize: flags["inline-size"],
+    xhsSize: flags["xhs-size"]
+  });
+  const xhsPack = buildXhsPack(article, recommendation, {
+    cards: flags.cards,
+    size: flags.size
+  });
+
+  const outputs = {
+    workflowReport: path.join(outDir, "workflow-report.md"),
+    workflowJson: path.join(outDir, "workflow-report.json"),
+    wechatHtml: path.join(outDir, "wechat.html"),
+    previewHtml: path.join(outDir, "preview.html"),
+    image2Prompts: path.join(outDir, "image2-prompts.md"),
+    xhsMarkdown: path.join(outDir, "xhs.md"),
+    xhsJson: path.join(outDir, "xhs.json"),
+    checklist: path.join(outDir, "publish-checklist.md")
+  };
+
+  writeText(outputs.wechatHtml, articleHtml);
+  writeText(outputs.previewHtml, previewHtml);
+  writeText(outputs.image2Prompts, renderVisualPlanMarkdown(visualPlan));
+  writeText(outputs.xhsMarkdown, renderXhsMarkdown(xhsPack));
+  writeText(outputs.xhsJson, JSON.stringify(xhsPack, null, 2));
+  writeText(
+    outputs.checklist,
+    buildPublishChecklist(article, recommendation, mapValues(outputs, (filePath) => toPosixPath(path.resolve(filePath))))
+  );
+
+  const report = buildWorkflowReport(
+    article,
+    recommendation,
+    mapValues(outputs, (filePath) => toPosixPath(path.resolve(filePath))),
+    {
+      draftMode: flags["draft-mode"] || "manual",
+      workflowName: flags.name
+    }
+  );
+  writeText(outputs.workflowReport, renderWorkflowMarkdown(report));
+  writeText(outputs.workflowJson, JSON.stringify(report, null, 2));
+
+  printResult(
+    {
+      kind: "workflow-report",
+      input: toPosixPath(path.resolve(input)),
+      outDir: toPosixPath(outDir),
+      theme: theme.id,
+      label: theme.label,
+      warnings: report.inspection.warnings,
+      gates: report.gates,
+      outputs: mapValues(outputs, (filePath) => toPosixPath(path.resolve(filePath)))
+    },
+    flags
+  );
+}
+
 function runCatalog(args) {
   const { positional, flags } = parseFlags(args);
 
@@ -539,6 +617,25 @@ function printResult(result, flags = {}) {
     return;
   }
 
+  if (result.kind === "workflow-report") {
+    console.log(`workflow: ${result.outDir}`);
+    console.log(`theme: ${result.label} (${result.theme})`);
+    if (result.warnings?.length) {
+      console.log("");
+      console.log(`warnings: ${result.warnings.length}`);
+      for (const warning of result.warnings) console.log(`- ${warning}`);
+    }
+    console.log("");
+    for (const gate of result.gates || []) {
+      console.log(`${gate.ok ? "OK" : "--"} ${gate.name}: ${gate.message}`);
+    }
+    console.log("");
+    for (const [label, filePath] of Object.entries(result.outputs || {})) {
+      console.log(`${label}: ${filePath}`);
+    }
+    return;
+  }
+
   if (result.tokens) {
     console.log(`${result.id} - ${result.label}`);
     console.log(result.description);
@@ -593,6 +690,7 @@ Usage:
   wechat-md-studio visuals <article.md> [--theme auto|theme-id] [--count 1-4] [--out prompts.md] [--json]
   wechat-md-studio xhs <article.md> [--theme auto|theme-id] [--cards 4-9] [--out xhs.md] [--json]
   wechat-md-studio package <article.md> [--theme auto|theme-id] [--out-dir dir] [--cards 4-9] [--visuals 1-4] [--json]
+  wechat-md-studio workflow <article.md> [--theme auto|theme-id] [--out-dir dir] [--cards 4-9] [--visuals 1-4] [--json]
   wechat-md-studio catalog [articles-dir] [--out content-index.json] [--site|--wechat|--xhs] [--json]
   wechat-md-studio catalog template [--channel article|image-post|source] [--status draft|published]
   wechat-md-studio themes list [--json]
@@ -609,6 +707,7 @@ Examples:
   wechat-md-studio visuals examples/ai-money.md --out dist/ai-money.image2-prompts.md
   wechat-md-studio xhs examples/ai-money.md --cards 6 --out dist/ai-money.xhs.md
   wechat-md-studio package examples/ai-money.md --out-dir dist/ai-money-package
+  wechat-md-studio workflow examples/ai-money.md --out-dir dist/ai-money-workflow
   wechat-md-studio catalog ../articles --out dist/content-index.json
   wechat-md-studio themes design tech-pulse --out dist/tech-pulse.DESIGN.md
 `);

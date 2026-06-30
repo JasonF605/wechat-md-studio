@@ -1,0 +1,4 @@
+interface:
+  display_name: "WeChat Content Workflow"
+  short_description: "Run the WeChat article account SOP."
+  default_prompt: "Use $wechat-content-workflow to run the article account SOP for this Markdown article."

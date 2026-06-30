@@ -47,12 +47,20 @@ Planned follow-ups:
 - Per-account brand profile.
 - Typography density presets for short posts, long essays, and tutorials.
 
-## v0.6 Publishing Operations
+## v0.6 Workflow Shell
+
+- Article-account workflow command that creates `workflow-report.md` and `workflow-report.json`.
+- Baoyu-style operator shell through `skills/wechat-content-workflow` without bloating the core formatter.
+- One-command SOP package: WeChat HTML, preview, image2 prompts, Xiaohongshu pack, checklist, and workflow gates.
+- Content readiness checks for title length, structure, frontmatter, and channel status.
+- Clear division between core formatter, workflow skill, upstream authoring, and downstream platform adapters.
+
+Planned follow-ups:
 
 - Multi-account profile support.
 - Draft update and delete helpers.
-- Cover image media handling.
-- Publish readiness checks.
+- Cover image media handling improvements.
+- Publish readiness checks for high-risk topics.
 - Safe config diagnostics that never print secrets.
 
 ## v0.7 Intelligent Authoring

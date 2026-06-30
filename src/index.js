@@ -20,6 +20,7 @@ export {
   lintThemeDesign,
   renderThemeDesignMarkdown
 } from "./design-system.js";
+export { buildWorkflowReport, renderWorkflowMarkdown } from "./workflow.js";
 export {
   WeChatApiError,
   addDraft,
